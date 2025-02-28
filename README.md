@@ -1,4 +1,4 @@
-# energy_distribution_system_react
+# Energy Distribution System | ReactJS
 Web based drawing system
 
 # Getting Started with Create React App
