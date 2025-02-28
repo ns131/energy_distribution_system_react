@@ -7,6 +7,7 @@ function AppPage() {
 
     return (
         <div>
+
             App page
         </div>
     )
