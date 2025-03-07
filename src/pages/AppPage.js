@@ -20,7 +20,7 @@ function AppPage() {
                 x: 0, y: 0, labelWidth: 0},
             values: {
                 L: {value: 0, unit: "m", editable: false},
-                k: {value: 7, unit: "", editable: true},
+                k: {value: 1, unit: "", editable: true},
                 A: {value: 3478, unit: "", editable: false},
                 V: {value: 2000, unit: "V", editable: false},
                 "VD%": {value: 0.00, unit: "%E", editable: false},
@@ -81,7 +81,7 @@ function AppPage() {
                 x: 0, y: 0, labelWidth: 0},
             values: {
                 L: {value: 0, unit: "m", editable: false},
-                k: {value: 3, unit: "", editable: true},
+                k: {value: 1, unit: "", editable: true},
                 A: {value: 3478, unit: "", editable: false},
                 V: {value: 2000, unit: "V", editable: false},
                 "VD%": {value: 0.00, unit: "%E", editable: false},
@@ -129,7 +129,6 @@ function AppPage() {
     const [isLineSelected, setIsLineSelected] = useState(false);
     const [nodeIDCounter, setNodeIDCounter] = useState(1);
 
-    const [scale, setScale] = useState(1);
     const [stageSize] = useState({
         width: window.innerWidth * (1 - 0.09 - 0.11),
         height: window.innerHeight - 91
@@ -160,8 +159,9 @@ function AppPage() {
     }, [tree, selectedNodeId]);
 
     /**
-     * @param {number} id
-     * @param {{x: number, y: number}} position
+     * addNodeToArea - Yeni bir düğümü belirli bir konuma ekler.
+     * @param {number} id - Yeni Node Türü ID bilgisi (Symbols.ID).
+     * @param {Object} [position=startPosition] - Eklenecek Node konumu.
      */
     const addNodeToArea = (id, position = startPosition) => {
         let newNode = structuredClone(symbols.find(symbol => symbol.id === parseInt(id)));
@@ -220,8 +220,11 @@ function AppPage() {
     }
 
     /**
-     * @param {{}} node
-     * @param {*} nodeId
+     findNodeDeep - Ağaç yapısında belirtilen ID'ye sahip düğümü bulur.
+     Lodash kullanıldığında sonuç hatalı olduğu için bu fonksiyon yazıldı.
+     @param {Object} node - Ağaç düğümü.
+     @param {number} nodeId - Aranacak düğüm ID.
+     @returns {Object|null} - Bulunan düğüm veya null.
      */
     const findNodeDeep = (node, nodeId) => {
         if (node.id === nodeId) {
@@ -239,8 +242,9 @@ function AppPage() {
     };
 
     /**
-     * @param {{x: number, y: number}} position
-     * @param id
+     * updateNodePosition - Belirtilen düğümün konumunu günceller.
+     * @param {Object} position - Yeni x, y koordinatları.
+     * @param {number} id - Güncellenecek düğümün ID.
      */
     const updateNodePosition = (position, id) => {
         const updatePosition = (node) => {
@@ -260,6 +264,12 @@ function AppPage() {
         });
     };
 
+    /**
+     * updateNodeValue - Belirtilen düğümün değerini günceller.
+     * @param {Event} event - Event.
+     * @param {number} [id=selectedNodeId] - Güncellenecek düğüm ID.
+     * @param {string} [key="values"] - Güncellenecek değer kategorisi.
+     */
     const updateNodeValue = (event, id = selectedNodeId, key = "values") => {
         const { name, value } = event.target;
         console.log(name, value);
@@ -286,6 +296,11 @@ function AppPage() {
         });
     }
 
+    /**
+     * updateLForNodeAndChildren - Belirtilen düğüm ve alt düğümler için L değerini günceller.
+     * Diğer değerler de (VD gibi) gerekli matematiksel hesaplamalara göre eklenebilir.
+     * @param {number} targetId - Güncellenecek düğüm kimliği.
+     */
     const updateLForNodeAndChildren = (targetId) => {
 
         const updateLValue = (node, parent = null) => {
@@ -331,45 +346,86 @@ function AppPage() {
         return textWidth * 6 + 15;
     }
 
+    /**
+     * handleWheel - Sahneyi yakınlaştırır veya uzaklaştırır. Mouse konumuna göre merkezleyerek çalışır.
+     * @param {Object} e - Wheel (Mouse tekerlek) event nesnesi.
+     */
     const handleWheel = (e) => {
-        e.evt.preventDefault();
-
+        const stage = e.target.getStage();
+        const pointer = stage.getPointerPosition();
         const scaleBy = 1.05;
-        const newScale = e.evt.deltaY > 0 ? scale / scaleBy : scale * scaleBy;
 
-        if (newScale > 0.3 && newScale < 4) {
-            setScale(newScale);
-        }
+        const oldScale = stage.scaleX();
+        const newScale = e.evt.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy;
+
+        if (newScale < 0.3 || newScale > 4) return;
+
+        const newPos = {
+            x: pointer.x - ((pointer.x - stage.x()) * newScale) / oldScale,
+            y: pointer.y - ((pointer.y - stage.y()) * newScale) / oldScale,
+        };
+
+        stage.scale({ x: newScale, y: newScale });
+        stage.position(newPos);
+        stage.batchDraw();
     };
+
+    /**
+     * homeView - Çalışma alanındaki zoom ve taşımayı sıfırlayarak başlangıçtaki görünüme geri döner.
+     *
+     */
     const homeView = () => {
         const stage = stageRef.current;
         stage.scale({x: 1, y: 1});
         stage.position({x: 0, y: 0});
-        setScale(1);
+        stage.batchDraw();
     }
 
+    /**
+     * handleExportPng - Konva sahnesini seçili düğümü sıfırladıktan sonra PNG formatında oluşturur ve indirir.
+     *
+     */
     const handleExportPng = () => {
-        const uri = stageRef.current.toDataURL();
-        const link = document.createElement('a');
-        link.download = 'stage.png';
-        link.href = uri;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-    const handleExportPdf = () => {
-        const uri = stageRef.current.toDataURL();
-        const pdf = new jsPDF({
-            orientation: "l",
-            unit: "mm",
-            format: "a4",
-        });
-        pdf.addImage(uri, 'PNG', 10, 10,
-            (window.innerWidth * (1 - 0.09 - 0.11)) / 4.5,
-            (window.innerHeight - 90) / 4.5);
-        pdf.save('stage.pdf');
+        setSelectedNode({})
+        setTimeout(() => {
+            const uri = stageRef.current.toDataURL();
+            const link = document.createElement('a');
+            link.download = 'stage.png';
+            link.href = uri;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        },10)
     }
 
+    /**
+     * handleExportPdf - Konva sahnesini seçili düğümü sıfırladıktan sonra PDF formatında oluşturur ve indirir.
+     *
+     */
+    const handleExportPdf = () => {
+        setSelectedNode({})
+        setTimeout(() => {
+            const uri = stageRef.current.toDataURL();
+            const pdf = new jsPDF({
+                orientation: "l",
+                unit: "mm",
+                format: "a4",
+            });
+            pdf.addImage(uri, 'PNG', 10, 10,
+                (window.innerWidth * (1 - 0.09 - 0.11)) / 4.5,
+                (window.innerHeight - 90) / 4.5);
+            pdf.save('stage.pdf');
+        },10)
+    }
+
+    /**
+     * renderTreeGroup - Bir düğüm ve çocukları için Konva grup öğesi oluşturur.
+     * Düğümün görsel özelliklerini, metin etiketlerini ve iconlarını render eder.
+     * Düğümün sürüklenmesiyle konumu güncellenir ve seçili düğüm işaretlenir.
+     * Çocuk düğümler varsa, fonksiyon kendini rekürsif olarak çağırarak alt düğümleri de render eder.
+     *
+     * @param {Object} node - Render edilecek ağaç verisi.
+     */
     const renderTreeGroup = (node) => (
         <>
             <Group
@@ -445,6 +501,15 @@ function AppPage() {
         </>
     );
 
+    /**
+     * renderTreeLine - Bir düğüm ile çocukları arasındaki bağlantıları (Line öğeleri) ve
+     * her bir bağlantıya ait metin etiketlerini render eder.
+     * Her bir bağlantı çizgisi üzerine tıklanabilir.
+     * Ayrıca, bağlantı uzunluğu varsa, bu uzunluk değeri de etiket olarak gösterilir.
+     * Fonksiyon, çocuk düğümleri için rekürsif olarak kendini çağırır ve her bir bağlantıyı ilgili düğümle ilişkilendirir.
+     *
+     * @param {Object} node - Render edilecek ağaç verisi.
+     */
     const renderTreeLine = (node) => (
         <>
             {
@@ -605,8 +670,6 @@ function AppPage() {
                     width={stageSize.width}
                     height={stageSize.height}
                     draggable
-                    scaleX={scale}
-                    scaleY={scale}
                     onWheel={handleWheel}
                 >
                     <Layer>
@@ -618,7 +681,6 @@ function AppPage() {
                               points={[-1000, centerY, stageSize.width + 1000, centerY]}
                               stroke="#ccc"
                               strokeWidth={1}/>
-
 
                         {tree && Object.keys(tree).length > 0 && renderTreeLine(tree)}
 

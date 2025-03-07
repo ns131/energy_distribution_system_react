@@ -12,7 +12,7 @@ function EditLabel({name, editable = false, defaultValue,
             <div className={"edl-value"}>
                 {editable ? (
                     <input type={type} defaultValue={defaultValue}
-                           style={{width:`${100 - keyWidth}%`}}
+                           style={{width:`${100 - keyWidth}%`, height: "100%"}}
                            value={value}
                            name={name}
                            onChange={(e) => {
