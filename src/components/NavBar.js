@@ -3,20 +3,19 @@ import { NavLink } from 'react-router-dom';
 import images from '../assets/images';
 
 function NavBar() {
-    useEffect(() => {
-
-    }, []);
 
     return (
         <div className="nav-bar-main">
-            <div className={"nav-bar-left"}>
+            <div className="nav-bar-logo">
                 <NavLink to='/' className={"nav-link-logo"}>
                     <img
                         src={images.eae_elektrik_logo}
-                        width={"100%"}
+                        width={"65px"}
                         alt="EAE Elektrik">
                     </img>
                 </NavLink>
+            </div>
+            <div className={"nav-bar-menu"}>
                 <NavLink to={"/"} className={"nav-link-a"}>
                     <div>
                         App

@@ -1,8 +1,8 @@
 @use "reset";
 
-@use "components/navbar";
-
 /* pages */
-
+@use "pages/app-page";
 
 /* components */
+@use "components/navbar";
+@use "components/edit-label";
